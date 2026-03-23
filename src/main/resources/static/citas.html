@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Citas - Veterinaria</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Veterinaria</div>
+        <div class="nav-user">
+            <span id="user-info"></span>
+            <button onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Gestión de Citas</h1>
+
+        <div class="card" id="cita-create-card">
+            <h2>Programar Nueva Cita</h2>
+            <form id="cita-form">
+                <div class="form-row">
+                    <div class="field">
+                        <label>Paciente:</label>
+                        <select id="pacienteId" required>
+                            <option value="">Cargando pacientes...</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Fecha y Hora:</label>
+                        <input type="datetime-local" id="fechaHora" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Motivo de Consulta:</label>
+                    <input type="text" id="motivo" required>
+                </div>
+
+                <div class="field">
+                    <label>Veterinario Asignado:</label>
+                    <input type="text" id="veterinarioAsignado" required>
+                </div>
+
+                <button type="submit">Programar Cita</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Próximas Citas</h2>
+            <button onclick="cargarCitas()" class="btn-refresh">Actualizar</button>
+            <table id="tabla-citas">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Paciente</th>
+                        <th>Fecha/Hora</th>
+                        <th>Motivo</th>
+                        <th>Veterinario</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="nav-links">
+            <a href="/pacientes" class="btn-link">Volver a Pacientes</a>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        checkAuth();
+
+        const role = getRole();
+        document.getElementById('user-info').textContent =
+            `${localStorage.getItem('username')} (${role})`;
+
+        if (role === 'VETERINARIO') {
+            document.getElementById('cita-create-card').style.display = 'none';
+        }
+
+        cargarSelectPacientes();
+        cargarCitas();
+
+        async function cargarSelectPacientes() {
+            try {
+                const response = await fetchWithAuth('/api/pacientes');
+                if (!response.ok) {
+                    throw new Error('No fue posible cargar pacientes');
+                }
+
+                const pacientes = await response.json();
+                const select = document.getElementById('pacienteId');
+                select.replaceChildren(crearOption('', 'Seleccione paciente...'));
+                pacientes.forEach(paciente => {
+                    const label = `${paciente.nombre} (${paciente.especie}) - Dueño: ${paciente.nombreDueno}`;
+                    select.appendChild(crearOption(String(paciente.id), label));
+                });
+            } catch (error) {
+                console.error('Error cargando pacientes:', error);
+            }
+        }
+
+        document.getElementById('cita-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const cita = {
+                pacienteId: parseInt(document.getElementById('pacienteId').value, 10),
+                fechaHora: document.getElementById('fechaHora').value,
+                motivo: document.getElementById('motivo').value,
+                veterinarioAsignado: document.getElementById('veterinarioAsignado').value
+            };
+
+            try {
+                const response = await fetchWithAuth('/api/citas', {
+                    method: 'POST',
+                    body: JSON.stringify(cita)
+                });
+
+                if (response.ok) {
+                    alert('Cita programada exitosamente');
+                    document.getElementById('cita-form').reset();
+                    cargarCitas();
+                } else if (response.status === 403) {
+                    alert('Tu rol no tiene permisos para programar citas');
+                } else {
+                    const error = await response.text();
+                    alert('Error: ' + error);
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+        });
+
+        async function cargarCitas() {
+            try {
+                const response = await fetchWithAuth('/api/citas');
+                if (!response.ok) {
+                    throw new Error('No fue posible cargar citas');
+                }
+
+                const citas = await response.json();
+                const tbody = document.querySelector('#tabla-citas tbody');
+                tbody.replaceChildren(...citas.map(crearFilaCita));
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function crearOption(value, label) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            return option;
+        }
+
+        function crearFilaCita(cita) {
+            const tr = document.createElement('tr');
+            [
+                cita.id,
+                cita.paciente?.nombre ?? '-',
+                String(cita.fechaHora).replace('T', ' '),
+                cita.motivo,
+                cita.veterinarioAsignado
+            ].forEach(valor => {
+                const td = document.createElement('td');
+                td.textContent = valor == null ? '' : String(valor);
+                tr.appendChild(td);
+            });
+            return tr;
+        }
+    </script>
+</body>
+</html>
