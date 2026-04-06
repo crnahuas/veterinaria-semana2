@@ -35,7 +35,18 @@ Luego abre:
 
 - `https://localhost:8443/login`
 
-El frontend en Docker usa proxy interno hacia el backend, por lo que no necesitas configurar ninguna URL manualmente. Si entras por `http://localhost:8080`, redirige a HTTPS.
+El frontend en Docker usa proxy interno hacia el backend, por lo que no necesitas configurar ninguna URL manualmente. Si entras por `http://localhost:8081`, redirige a HTTPS.
+
+Puertos por defecto del frontend en Docker:
+
+- `FRONTEND_HTTP_PORT=8081`
+- `FRONTEND_HTTPS_PORT=8443`
+
+Si necesitas cambiarlos:
+
+```bash
+FRONTEND_HTTP_PORT=8082 FRONTEND_HTTPS_PORT=8444 docker compose up --build -d
+```
 
 Para detener todo:
 

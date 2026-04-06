@@ -3,7 +3,7 @@ services:
     container_name: jenkins
     image: jenkins/jenkins:lts-jdk21
     ports:
-      - "8081:8080"
+      - "${JENKINS_HTTP_PORT:-8082}:8080"
       - "50000:50000"
     networks:
       - net
@@ -18,7 +18,7 @@ services:
     container_name: sonarqube
     image: sonarqube:latest
     ports:
-      - "9000:9000"
+      - "${SONARQUBE_HTTP_PORT:-9000}:9000"
     networks:
       - net
     environment:
@@ -38,7 +38,7 @@ services:
       context: ..
       dockerfile: Dockerfile.mysql
     ports:
-      - "3309:3306"
+      - "${MYSQL_CI_PORT:-3309}:3306"
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: mydatabase

@@ -14,7 +14,12 @@ Luego abre:
 
 - `https://localhost:8443/login`
 
-En este modo, el frontend usa proxy interno hacia el backend y `http://localhost:8080` redirige a HTTPS.
+En este modo, el frontend usa proxy interno hacia el backend y `http://localhost:8081` redirige a HTTPS.
+
+Puertos por defecto:
+
+- `FRONTEND_HTTP_PORT=8081`
+- `FRONTEND_HTTPS_PORT=8443`
 
 ## Ejecutar
 
