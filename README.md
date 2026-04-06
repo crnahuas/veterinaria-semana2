@@ -1,20 +1,105 @@
 # Veterinaria Segura
 
-Proyecto ajustado a la pauta de CDY2203 Exp 1 Semana 2 usando como referencia el backend entregado en `cdy2203-backend-2026-201-main.zip`.
+El repositorio quedó reorganizado para separar físicamente las capas:
 
-## Tecnologías
+- `backend/`: API independiente en Spring Boot.
+- `frontend/`: cliente web estático que consume la API como consumidor externo.
+- `docker-compose.yml`: levanta MySQL, backend y frontend.
 
-- Spring Boot 3.3.6
-- Spring Web
-- Spring Security
-- Spring Data JPA
-- MySQL Driver
-- JWT
-- HTTPS con certificado local PKCS12
+## Estructura
+
+```text
+.
+├── backend
+├── frontend
+├── docs
+├── docker-compose.yml
+└── Dockerfile.mysql
+```
+
+## Docker Compose
+
+Con Docker Compose se levantan los 3 servicios:
+
+- `mysql`
+- `backend`
+- `frontend`
+
+Ejecuta:
+
+```bash
+docker compose up --build -d
+```
+
+Luego abre:
+
+- `https://localhost:8443/login`
+
+El frontend en Docker usa proxy interno hacia el backend, por lo que no necesitas configurar ninguna URL manualmente. Si entras por `http://localhost:8080`, redirige a HTTPS.
+
+Para detener todo:
+
+```bash
+docker compose down
+```
+
+## Backend
+
+El backend expone únicamente endpoints API y ya no sirve HTML, CSS ni JavaScript embebidos.
+
+- Aplicación base: `https://localhost:8384`
+- Login público: `POST /api/login`
+- Endpoints protegidos: `/api/pacientes`, `/api/citas`, `/greetings`
+- Configuración principal: `backend/src/main/resources/application.properties`
+
+Usuarios de prueba:
+
+- `recepcionista / vet123`
+- `veterinario / vet123`
+- `admin / admin123`
+
+Ejecución desde la raíz del repositorio:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Pruebas:
+
+```bash
+./mvnw test
+```
+
+Alternativa equivalente dentro de `backend/`:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+## Frontend
+
+El frontend quedó desacoplado y puede levantarse con cualquier servidor estático. Usa el mismo origen del sitio o un proxy hacia el backend.
+
+Cuando levantas Spring Boot directamente, el mismo backend también sirve las páginas en rutas amigables:
+
+- `/`
+- `/login`
+- `/pacientes`
+- `/citas`
+
+Ejemplo con servidor estático local:
+
+```bash
+cd frontend
+python3 -m http.server 5500
+```
+
+Luego abre:
+
+- `http://localhost:5500`
 
 ## Base de datos MySQL
-
-La configuración principal del backend usa MySQL en `src/main/resources/application.properties`.
 
 Variables por defecto:
 
@@ -24,126 +109,10 @@ Variables por defecto:
 - `DB_USERNAME=myuser`
 - `DB_PASSWORD=password`
 
-Puedes cambiar el string de conexión editando `src/main/resources/application.properties` o sobreescribiendo `DB_URL`.
+Con Docker Compose ya se levanta junto con backend y frontend.
 
-## Dockerfile MySQL
+## Documentación
 
-Archivo requerido por la pauta: `Dockerfile`
-
-Comandos sugeridos:
-
-```bash
-docker build -t veterinaria-mysql .
-docker run -d --name veterinaria-mysql -p 3308:3306 veterinaria-mysql
-```
-
-Opcionalmente puedes usar `docker-compose.yml`:
-
-```bash
-docker compose up -d
-```
-
-## HTTPS
-
-La aplicación arranca sobre HTTPS:
-
-- `https://localhost:8443`
-- `http://localhost:8080` redirige a HTTPS
-
-Certificado local:
-
-- Keystore: `src/main/resources/veterinaria-keystore.p12`
-- Alias: `veterinaria-https`
-
-Como el certificado es autofirmado, el navegador mostrará una advertencia la primera vez.
-
-## Usuarios de prueba
-
-- `recepcionista / vet123`
-- `veterinario / vet123`
-- `admin / admin123`
-
-## APIs implementadas
-
-### Públicas
-
-- `POST /api/login`
-  - Body:
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
-  - Respuesta:
-```json
-{
-  "token": "jwt",
-  "username": "admin",
-  "role": "ADMIN"
-}
-```
-
-### Privadas
-
-- `GET /api/pacientes`
-  - Roles: `RECEPCIONISTA`, `VETERINARIO`, `ADMIN`
-  - Header: `Authorization: Bearer <token>`
-
-- `POST /api/pacientes`
-  - Roles: `RECEPCIONISTA`, `ADMIN`
-  - Header: `Authorization: Bearer <token>`
-  - Body:
-```json
-{
-  "nombre": "Luna",
-  "especie": "Perro",
-  "raza": "Beagle",
-  "edad": 4,
-  "nombreDueno": "Carla Soto"
-}
-```
-
-- `GET /api/pacientes/{id}`
-  - Roles: `RECEPCIONISTA`, `VETERINARIO`, `ADMIN`
-  - Parámetro: `id`
-
-- `GET /api/citas`
-  - Roles: `RECEPCIONISTA`, `VETERINARIO`, `ADMIN`
-  - Header: `Authorization: Bearer <token>`
-
-- `POST /api/citas`
-  - Roles: `RECEPCIONISTA`, `ADMIN`
-  - Header: `Authorization: Bearer <token>`
-  - Body:
-```json
-{
-  "pacienteId": 1,
-  "fechaHora": "2026-03-30T10:30:00",
-  "motivo": "Control general",
-  "veterinarioAsignado": "Dra. Pérez"
-}
-```
-
-## Frontend
-
-Archivos principales:
-
-- `src/main/resources/static/index.html`
-- `src/main/resources/static/pacientes.html`
-- `src/main/resources/static/citas.html`
-
-Comportamiento por rol:
-
-- `RECEPCIONISTA` y `ADMIN` pueden registrar pacientes y programar citas.
-- `VETERINARIO` puede consultar pacientes y citas, pero no crear registros.
-
-## Pruebas
-
-Perfil de test en `src/main/resources/application-test.properties` usando H2 para pruebas automáticas.
-
-Ejecutar:
-
-```bash
-./mvnw test
-```
+- API: `docs/API_DOCUMENTACION.md`
+- Backend: `backend/README.md`
+- Frontend: `frontend/README.md`

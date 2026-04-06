@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.duoc.veterinaria.HttpsRedirectTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.376 s -- in com.duoc.veterinaria.HttpsRedirectTests

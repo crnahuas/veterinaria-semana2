@@ -1,0 +1,63 @@
+services:
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins:lts-jdk21
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    networks:
+      - net
+    environment:
+      - JENKINS_OPTS="--prefix=/jenkins"
+      - JENKINS_SLAVE_AGENT_PORT=50000
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    restart: always
+
+  sonarqube:
+    container_name: sonarqube
+    image: sonarqube:latest
+    ports:
+      - "9000:9000"
+    networks:
+      - net
+    environment:
+      # - SONARQUBE_JDBC_URL=jdbc:postgresql://db:5432/sonar
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_temp:/opt/sonarqube/temp
+    restart: always
+
+  mysql:
+    container_name: mysql-ci
+    build:
+      context: ..
+      dockerfile: Dockerfile.mysql
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_ci_data:/var/lib/mysql
+    networks:
+      - net
+    restart: always
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_temp:
+  mysql_ci_data:

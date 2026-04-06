@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pacientes - Veterinaria</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Veterinaria</div>
+        <div class="nav-user">
+            <span id="user-info"></span>
+            <button onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Gestión de Pacientes</h1>
+
+        <div class="card" id="paciente-create-card">
+            <h2>Registrar Nuevo Paciente</h2>
+            <form id="paciente-form">
+                <div class="form-row">
+                    <div class="field">
+                        <label>Nombre:</label>
+                        <input type="text" id="nombre" required>
+                    </div>
+                    <div class="field">
+                        <label>Especie:</label>
+                        <select id="especie" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Perro">Perro</option>
+                            <option value="Gato">Gato</option>
+                            <option value="Ave">Ave</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label>Raza:</label>
+                        <input type="text" id="raza">
+                    </div>
+                    <div class="field">
+                        <label>Edad (años):</label>
+                        <input type="number" id="edad" min="0">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Nombre del Dueño:</label>
+                    <input type="text" id="nombreDueno" required>
+                </div>
+
+                <button type="submit">Guardar Paciente</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Lista de Pacientes</h2>
+            <button onclick="cargarPacientes()" class="btn-refresh">Actualizar</button>
+            <table id="tabla-pacientes">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Especie</th>
+                        <th>Raza</th>
+                        <th>Edad</th>
+                        <th>Dueño</th>
+                        <th id="acciones-header">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="nav-links">
+            <a href="/citas" class="btn-link">Ir a Gestión de Citas</a>
+        </div>
+    </div>
+
+    <script src="./js/app.js"></script>
+    <script>
+        checkAuth();
+
+        const role = getRole();
+        const canManagePacientes = role === 'RECEPCIONISTA' || role === 'ADMIN';
+        document.getElementById('user-info').textContent =
+            `${localStorage.getItem('username')} (${role})`;
+
+        if (!canManagePacientes) {
+            document.getElementById('paciente-create-card').style.display = 'none';
+            document.getElementById('acciones-header').style.display = 'none';
+        }
+
+        cargarPacientes();
+
+        document.getElementById('paciente-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const paciente = {
+                nombre: document.getElementById('nombre').value,
+                especie: document.getElementById('especie').value,
+                raza: document.getElementById('raza').value,
+                edad: parseInt(document.getElementById('edad').value, 10) || 0,
+                nombreDueno: document.getElementById('nombreDueno').value
+            };
+
+            try {
+                const response = await fetchWithAuth('/api/pacientes', {
+                    method: 'POST',
+                    body: paciente
+                });
+
+                if (response.ok) {
+                    alert('Paciente registrado exitosamente');
+                    document.getElementById('paciente-form').reset();
+                    cargarPacientes();
+                } else if (response.status === 403) {
+                    alert('Tu rol no tiene permisos para registrar pacientes');
+                } else {
+                    const error = await response.text();
+                    alert(error || 'Error al registrar paciente');
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+        });
+
+        async function cargarPacientes() {
+            try {
+                const response = await fetchWithAuth('/api/pacientes');
+                if (!response.ok) {
+                    throw new Error('No fue posible cargar pacientes');
+                }
+
+                const pacientes = await response.json();
+                const tbody = document.querySelector('#tabla-pacientes tbody');
+                tbody.replaceChildren(...pacientes.map(crearFilaPaciente));
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function eliminarPaciente(id) {
+            if (!confirm('¿Eliminar este paciente y sus citas asociadas?')) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithAuth(`/api/pacientes/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    cargarPacientes();
+                    alert('Paciente eliminado');
+                } else if (response.status === 403) {
+                    alert('Tu rol no tiene permisos para eliminar pacientes');
+                } else {
+                    const error = await response.text();
+                    alert(error || 'No fue posible eliminar el paciente');
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+        }
+
+        function crearFilaPaciente(paciente) {
+            const tr = document.createElement('tr');
+            [
+                paciente.id,
+                paciente.nombre,
+                paciente.especie,
+                paciente.raza || '-',
+                paciente.edad ?? '-',
+                paciente.nombreDueno
+            ].forEach(valor => {
+                const td = document.createElement('td');
+                td.textContent = valor == null ? '' : String(valor);
+                tr.appendChild(td);
+            });
+
+            if (canManagePacientes) {
+                const acciones = document.createElement('td');
+                acciones.className = 'actions-cell';
+
+                const botonEliminar = document.createElement('button');
+                botonEliminar.type = 'button';
+                botonEliminar.className = 'btn-danger';
+                botonEliminar.textContent = 'Eliminar';
+                botonEliminar.addEventListener('click', () => eliminarPaciente(paciente.id));
+
+                acciones.appendChild(botonEliminar);
+                tr.appendChild(acciones);
+            }
+
+            return tr;
+        }
+    </script>
+</body>
+</html>

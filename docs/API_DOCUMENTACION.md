@@ -1,5 +1,7 @@
 # Documentación breve de APIs - Veterinaria
 
+Esta documentación corresponde al backend desacoplado ubicado en `backend/`.
+
 ## Usuarios iniciales
 - recepcionista / vet123
 - veterinario / vet123
@@ -16,13 +18,6 @@
 }
 ```
 - Respuesta: token JWT, username y role.
-
-### POST /login
-- Método: POST
-- Parámetros form-data o x-www-form-urlencoded:
-  - `user`
-  - `encryptedPass`
-- Respuesta: token JWT con prefijo `Bearer `.
 
 ## APIs privadas
 ### GET /api/pacientes
@@ -70,14 +65,26 @@
 - Requiere JWT.
 
 ## Conexión a base de datos
-La conexión principal se configura en `src/main/resources/application.properties`.
+La conexión principal se configura en `backend/src/main/resources/application.properties`.
 También puede cambiarse por variables de entorno:
 - `DB_URL`
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
+## CORS para frontend externo
+El backend permite consumo desde un frontend separado. Los orígenes permitidos se configuran con:
+
+- `CORS_ALLOWED_ORIGIN_PATTERNS`
+
+Valor por defecto:
+
+- `http://localhost:*`
+- `http://127.0.0.1:*`
+- `https://localhost:*`
+- `https://127.0.0.1:*`
+
 ## Docker entregado
 - `Dockerfile.mysql`: crea la base de datos MySQL.
-- `Dockerfile`: crea la imagen de la aplicación Spring Boot.
+- `Dockerfile`: alias mantenido para la imagen MySQL requerida por la pauta.
 - `apache/Dockerfile`: crea el proxy Apache HTTPS.
-- `docker-compose.yml`: orquesta app + mysql + apache.
+- `docker-compose.yml`: levanta MySQL para el backend.
